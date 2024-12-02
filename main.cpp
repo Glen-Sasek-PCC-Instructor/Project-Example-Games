@@ -14,10 +14,11 @@
 #include <limits> 
 #include <ctime>
 #include <set>
+#include <iomanip>
 using namespace std;
 
 const int MAXCHAR = 30;
-const string FILENAME = "vgsales.csv";
+const string FILENAME = "471-vgsales.csv";
 
 // Structure to hold video game data
 struct VideoGame {
@@ -37,6 +38,9 @@ void searchVideoGame(const vector<VideoGame>& games);
 void findMaxSales(const vector<VideoGame>& games);
 void saveVideoGames(const vector<VideoGame>& games);
 int getValidatedIndex(int maxIndex);
+void printVideoGame(const vector<VideoGame>& games, int index);
+void printVideoGame(const VideoGame& game);
+void printVideoGame(const VideoGame& game, int i, ofstream &fout);
 
 int main() {
     // Display welcome message at the start
@@ -102,16 +106,20 @@ void loadvideoGames(vector<VideoGame>& games) {
     cout << "Error opening file!" << endl;
     return;
   }
-
+  int const MAX_TO_IGNORE = 100;
   string line;
   while (getline(file, line)) {
     stringstream ss(line);
     VideoGame game;
-    getline(ss, game.name, ';');
-    ss >> game.naSales;
-    ss.ignore();
-    getline(ss, game.platform, ';');
+    ss.ignore(MAX_TO_IGNORE,','); // Rank
+    getline(ss, game.name, ',');  // Name
+    getline(ss, game.platform, ','); // Platform                                    
+    ss.ignore(MAX_TO_IGNORE,','); // Year
+    ss.ignore(MAX_TO_IGNORE,','); // Genre
+    ss.ignore(MAX_TO_IGNORE,','); // Publisher
+    ss >> game.naSales;           // NA_Sales
     games.push_back(game);
+    printVideoGame(game);
   }
   file.close();
 }
@@ -161,6 +169,29 @@ void deletevideoGame(vector<VideoGame>& games) {
   printVideoGames(games);
 }
 
+void printVideoGame(const VideoGame& game, int i,  ofstream &fout){
+  const char SEP = ',';
+  fout << i << SEP;
+  fout << game.name << SEP;
+  fout << game.platform << SEP;
+  fout << game.naSales << SEP;
+  fout << endl;
+}
+
+void printVideoGame(const VideoGame& game) {
+   cout << right << fixed << setprecision(2);
+   cout << setw(50) << game.name.substr(0, 45);
+   cout << setw(10) << game.platform;
+   cout << setw(10) << game.naSales << endl;
+}
+
+void printVideoGame(const vector<VideoGame>& games, int index) {
+   const VideoGame& game = games[index];
+   cout << right << fixed << setprecision(2);
+   cout << setw(7) << (index + 1);
+  printVideoGame(game);
+}
+
 // Print the list of video games
 void printVideoGames(const vector<VideoGame>& games) {
   if (games.empty()) {
@@ -170,7 +201,7 @@ void printVideoGames(const vector<VideoGame>& games) {
 
   cout << "Video game name; NA sales; Platform" << endl;
   for (size_t i = 0; i < games.size(); ++i) {
-      cout << i + 1 << ". " << games[i].name << "; " << games[i].naSales << "; " << games[i].platform << endl;
+    printVideoGame(games, i);
   }
 }
 
@@ -189,8 +220,7 @@ void printRandomVideoGames(const vector<VideoGame>& games) {
 
     if (selectedIndices.find(randomIndex) == selectedIndices.end()) {
       selectedIndices.insert(randomIndex);
-      const VideoGame& game = games[randomIndex];
-      cout << game.name << "; " << game.naSales << "; " << game.platform << endl;
+      printVideoGame(games, randomIndex);
     }
   }
 }
@@ -205,7 +235,7 @@ void searchVideoGame(const vector<VideoGame>& games) {
   for (const auto& game : games) {
     if (game.name.find(searchName) != string::npos) {
       cout << "Here is the information:" << endl;
-      cout << game.name << " " << game.naSales << " " << game.platform << endl;
+      printVideoGame(game);
       found = true;
       break;
     }
@@ -231,19 +261,21 @@ void findMaxSales(const vector<VideoGame>& games) {
   }
 
   cout << "The video game with the most NA sales is: " << endl;
-  cout << maxGame->name << " " << maxGame->naSales << " " << maxGame->platform << endl;
+  printVideoGame(*maxGame);
 }
 
 // Save the video games back to the file
 void saveVideoGames(const vector<VideoGame>& games) {
-  ofstream file(FILENAME);
+  ofstream file(FILENAME + ".bkp");
   if (!file.is_open()) {
     cout << "Error opening file for saving!" << endl;
     return;
   }
 
+  int i = 0;
   for (const auto& game : games) {
-    file << game.name << ";" << game.naSales << ";" << game.platform << ";" << endl;
+    printVideoGame(game, i, file);
+    i++;
   }
   file.close();
 }
